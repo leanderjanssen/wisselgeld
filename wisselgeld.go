@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"sort"
+	"strconv"
 )
 
 func Round(x, unit float64) float64 {
@@ -13,7 +14,9 @@ func Round(x, unit float64) float64 {
 
 func main() {
 
-	var invoer float64
+	var invoer []float64
+	var input float64
+
 	munten := map[float64]string{
 		200: "2 euro",
 		100: "1 euro",
@@ -25,40 +28,53 @@ func main() {
 
 	aantalMunt := [6]float64{0, 0, 0, 0, 0, 0}
 
-	fmt.Printf("\nVoer wisselgeld bedrag in (gebruik een punt als decimaal teken): ")
-	_, err := fmt.Scanf("%f", &invoer)
+	//Vraag om wisselgeld indien niet opgegeven als argument
+	if len(os.Args[1:]) < 1 {
+		fmt.Printf("\nVoer wisselgeld bedrag in (gebruik een punt als decimaal teken): ")
+		_, err := fmt.Scanf("%f", &input)
+		invoer = append(invoer, input)
 
-	if err != nil {
-		fmt.Println("\nOngeldige invoer!")
-		os.Exit(1)
+		if err != nil {
+			fmt.Println("\nOngeldige invoer!")
+			os.Exit(1)
+		}
+		//Verwerk anders de argumenten
+	} else {
+		for _, arg := range os.Args[1:] {
+			if n, err := strconv.ParseFloat(arg, 64); err == nil {
+				invoer = append(invoer, n)
+			}
+		}
 	}
 
-	fmt.Printf("\n%-30s %-1s %0.2f\n", "Ingevoerd wisselgeld bedrag: ", "€", invoer)
-	fmt.Printf("%-30s %-1s %0.2f\n\n", "Afgerond wisselgeld bedrag: ", "€", Round(invoer, 0.05))
+	for _, value := range invoer {
+		fmt.Printf("\n%-30s %-1s %0.2f\n", "Ingevoerd wisselgeld bedrag: ", "€", value)
+		fmt.Printf("%-30s %-1s %0.2f\n\n", "Afgerond wisselgeld bedrag: ", "€", Round(value, 0.05))
 
-	// Rond het invoer bedrag af en converteer naar centen
-	wisselgeld := Round(invoer, 0.05) * 100
+		// Rond het invoer bedrag af en converteer naar centen
+		wisselgeld := Round(value, 0.05) * 100
 
-	var keys []float64
-	// Creeer array met de keys van munten
-	for k := range munten {
-		keys = append(keys, k)
-	}
-	// Sorteer de array, grootste munt eerst
-	sort.Sort(sort.Reverse(sort.Float64Slice(keys)))
+		// Creeer array met de keys van munten
+		var keys []float64
+		for k := range munten {
+			keys = append(keys, k)
+		}
+		// Sorteer de array, grootste munt eerst
+		sort.Sort(sort.Reverse(sort.Float64Slice(keys)))
 
-	// Bereken per munt het max aantal
-	for key, value := range keys {
-		var munt = keys[key]
-		var aantal = math.Floor(wisselgeld / munt)
+		fmt.Println("Het minimum aantal munten is:\n")
 
-		if aantal >= 1 {
-			aantalMunt[key] = aantal
-			wisselgeld -= (aantal * keys[key])
+		// Bereken per munt het max aantal
+		for key, value := range keys {
+			munt := keys[key]
+			aantal := math.Floor(wisselgeld / munt)
 
-			fmt.Printf("%4.f %s %7s\n", aantal, "x", munten[value])
-			//fmt.Printf("%-13s %7s", "Muntsoort: ", munten[value])
-			//fmt.Println(" | Aantal: ", aantal)
+			if aantal >= 1 {
+				aantalMunt[key] = aantal
+				wisselgeld -= (aantal * keys[key])
+
+				fmt.Printf("%4.f%s %7s\n", aantal, "x", munten[value])
+			}
 		}
 	}
 }
